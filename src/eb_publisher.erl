@@ -31,9 +31,11 @@
 start_link(Connection, PublisherConfig) ->
 	gen_server:start_link(?MODULE, [Connection, PublisherConfig], []).
 
+-spec call(Server :: atom(), Msg :: term()) -> ok | {error, Reason :: term()}.
 call(Server, Msg) ->
 	gen_server:call(Server, {msg, Msg}).
 
+-spec cast(Server :: atom(), Msg :: term()) -> ok.
 cast(Server, Msg) ->
 	gen_server:cast(Server, {msg, Msg}).
 

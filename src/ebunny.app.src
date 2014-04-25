@@ -16,7 +16,7 @@
 
 {application, ebunny, [
 	{description, "Erlang RabbitMQ client"},
-	{vsn, "0.5.0"},
+	{vsn, "0.5.1"},
 	{modules, [	
 	]},
 	{registered, [ 
