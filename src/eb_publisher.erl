@@ -36,7 +36,7 @@ call(Server, Msg) ->
 
 cast(Server, Msg) ->
 	gen_server:cast(Server, {msg, Msg}).
-	
+
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
@@ -47,14 +47,12 @@ init([Connection, #publisher_record{publisher_name=ServerName, handler=Handler, 
 	error_logger:info_msg("Publisher ~p [~p] Starting...\n", [ServerName, self()]),
 	case eb_api:open_channel(Connection) of
 		{ok, Channel} ->
-			io:format("~p - channel: ~p~n", [ServerName, Channel]),
-			erlang:monitor(process, Channel),
 			{ok, HandlerState} = Handler:init(Args),
 			erlang:register(ServerName, self()),
 			State = #state{publisher_name=ServerName, 
-						   channel=Channel, 
-						   handler=Handler, 
-						   handler_state=HandlerState},
+					channel=Channel, 
+					handler=Handler, 
+					handler_state=HandlerState},
 			{ok, State};
 		{error, Reason} ->
 			error_logger:error_msg("Publisher ~p: Error while trying to open channel: ~p\n", [ServerName, Reason])
@@ -62,7 +60,7 @@ init([Connection, #publisher_record{publisher_name=ServerName, handler=Handler, 
 
 %% handle_call
 handle_call({msg, Msg}, _From, State) ->
-    case msg(Msg, State) of
+	case msg(Msg, State) of
 		{ok, State1} -> {reply, ok, State1};
 		{error, Reason, State1} -> {reply, {error, Reason}, State1}
 	end.
@@ -73,19 +71,18 @@ handle_cast({msg, Msg}, State) ->
 		{ok, State1} -> State1;
 		{error, _Reason, State1} -> State1
 	end,
-    {noreply, NewState}.
+	{noreply, NewState}.
 
 %% handle_info
-handle_info({terminate}, State) ->
-	{stop, normal, State};
-handle_info({'DOWN', _MonitorRef, process, Channel, _Reason}, State=#state{channel=Channel, handler=Handler, handler_state=HandlerState}) ->
-	Handler:terminate(HandlerState),
-	{stop, channel_closed, State}.
+handle_info(?COMMAND_RESTART, State) ->
+	{stop, ?COMMAND_RESTART, State};
+handle_info(?COMMAND_TERMINATE, State) ->
+	{stop, normal, State}.
 
 %% terminate
 terminate(_Reason, #state{channel=Channel}) ->
 	eb_api:close_channel(Channel),
-    ok.
+	ok.
 
 %% code_change
 code_change(_OldVsn, State, _Extra) ->

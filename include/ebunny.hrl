@@ -15,5 +15,7 @@
 %%
 
 -record(consumer_record, {consumer_name, host_uri, queue_name, handler, handler_args}).
-
 -record(publisher_record, {publisher_name, host_uri, handler, handler_args}).
+
+-define(COMMAND_TERMINATE, {terminate}).
+-define(COMMAND_RESTART, {restart}).

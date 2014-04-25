@@ -33,8 +33,6 @@ init(Connection, ConsumerConfig=#consumer_record{consumer_name=ServerName, handl
 	error_logger:info_msg("Consumer ~p [~p] Starting...\n", [ServerName, self()]),
 	case eb_api:open_channel(Connection) of
 		{ok, Channel} ->
-			io:format("~p - channel: ~p~n", [ServerName, Channel]),
-			erlang:monitor(process, Channel),
 			case eb_api:subscribe(Channel, ConsumerConfig#consumer_record.queue_name, self()) of
 				{ok, Ref} ->
 					State = #state{channel=Channel, subscription=Ref},
@@ -67,12 +65,13 @@ loop(ConsumerConfig=#consumer_record{handler=Handler}, State=#state{channel=Chan
 			end;
 		{other, Other} ->
 			case Other of
-				{'DOWN', _MonitorRef, process, Channel, _Reason} ->
-					Handler:terminate(HandlerState),
-					exit(channel_closed);
-				{terminate} ->
+				?COMMAND_TERMINATE ->
 					eb_api:unsubscribe(Channel, State#state.subscription),
 					stop(Channel, Handler, HandlerState);
+				?COMMAND_RESTART ->
+					eb_api:unsubscribe(Channel, State#state.subscription),
+					stop(Channel, Handler, HandlerState),
+					exit(?COMMAND_RESTART);
 				Other ->
 					error_logger:warning_msg("Consumer ~p: Receive ~p\n", [ConsumerConfig#consumer_record.consumer_name, Other]),
 					loop(ConsumerConfig, State, HandlerState)
