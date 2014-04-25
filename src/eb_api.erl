@@ -160,20 +160,20 @@ listen() ->
 -spec unsubscribe(Channel :: pid(), Ref :: term()) -> ok | {error, Reason :: term()}.
 unsubscribe(Channel, Ref) ->
 	if_running(Channel, fun() -> 
-			amqp_channel:call(Channel, #'basic.cancel'{consumer_tag = Ref}),
-			ok
+				amqp_channel:call(Channel, #'basic.cancel'{consumer_tag = Ref}),
+				ok
 		end).
 
 -spec close_channel(Channel :: pid()) -> ok | {error, Reason :: term()}.
 close_channel(Channel) ->
 	if_running(Channel, fun() -> 
-			amqp_channel:close(Channel)
+				amqp_channel:close(Channel)
 		end).	
 
 -spec disconnect(Connection :: pid()) -> ok | {error, Reason :: term()}.
 disconnect(Connection) ->
 	if_running(Connection, fun() -> 
-			amqp_connection:close(Connection)
+				amqp_connection:close(Connection)
 		end).
 
 %% ====================================================================

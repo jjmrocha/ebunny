@@ -39,18 +39,18 @@ start_link() ->
 	gen_server:start_link(?SERVER, ?MODULE, [], []).
 
 -spec start_consumer(WorkerName :: atom(), 
-					 Module :: atom(), 
-					 Args :: list(), 
-					 Host :: binary(), 
-					 Queue :: binary()) -> 
-		  ok | {error, Reason :: term()}.
+		Module :: atom(), 
+		Args :: list(), 
+		Host :: binary(), 
+		Queue :: binary()) -> 
+	ok | {error, Reason :: term()}.
 start_consumer(WorkerName, Module, Args, Host, Queue) ->
 	Worker = {?EBUNNY_WORKER_TYPE_CONSUMER, WorkerName},
 	WorkerConfig = #consumer_record{consumer_name = WorkerName,
-									host_uri = Host, 
-									queue_name = Queue, 
-									handler = Module,
-									handler_args = Args},
+			host_uri = Host, 
+			queue_name = Queue, 
+			handler = Module,
+			handler_args = Args},
 	gen_server:call(?MODULE, {start, Worker, WorkerConfig}).
 
 -spec stop_consumer(WorkerName :: atom()) -> ok.
@@ -59,16 +59,16 @@ stop_consumer(WorkerName) ->
 	gen_server:cast(?MODULE, {stop, Worker}).
 
 -spec start_publisher(WorkerName :: atom(), 
-					 Module :: atom(), 
-					 Args :: list(), 
-					 Host :: binary()) -> 
-		  ok | {error, Reason :: term()}.
+		Module :: atom(), 
+		Args :: list(), 
+		Host :: binary()) -> 
+	ok | {error, Reason :: term()}.
 start_publisher(WorkerName, Module, Args, Host) ->
 	Worker = {?EBUNNY_WORKER_TYPE_PUBLISHER, WorkerName},
 	WorkerConfig = #publisher_record{publisher_name = WorkerName,
-									host_uri = Host, 
-									handler = Module,
-									handler_args = Args},
+			host_uri = Host, 
+			handler = Module,
+			handler_args = Args},
 	gen_server:call(?MODULE, {start, Worker, WorkerConfig}).
 
 -spec stop_publisher(WorkerName :: atom()) -> ok.
@@ -115,15 +115,17 @@ handle_info({'DOWN', _MonitorRef, process, Pid, Reason}, State=#state{pids=Pids}
 			case dict:find(Uri, State#state.hosts) of
 				error -> {noreply, State};
 				{ok, Host} ->
-					stop_workers(Host#host.workers, State),
-					NHosts = dict:erase(Uri, State#state.hosts),
+					State1 = stop_workers(Host#host.workers, ?COMMAND_RESTART, State),
+					NHosts = dict:erase(Uri, State1#state.hosts),
 					NPids = dict:erase(Pid, Pids),
-					{noreply, State#state{hosts=NHosts, pids=NPids}}					
+					{noreply, State1#state{hosts=NHosts, pids=NPids}}					
 			end;
 		{ok, Worker} ->
-			io:format("Reason: ~p~n", [Reason]),
 			case Reason of
 				normal ->
+					NewState = stop(Worker, State),
+					{noreply, NewState};
+				shutdown ->
 					NewState = stop(Worker, State),
 					{noreply, NewState};
 				_ ->
@@ -142,8 +144,10 @@ handle_info({'DOWN', _MonitorRef, process, Pid, Reason}, State=#state{pids=Pids}
 	end.
 
 %% terminate
-terminate(_Reason, State) ->
-	%% TODO fechar as ligacoes depois de fechar os servers
+terminate(_Reason, State=#state{workers=Workers}) ->
+	dict:fold(fun(Worker, _Value, S) ->
+				stop(Worker, S)
+		end, State, Workers),
 	ok.
 
 %% code_change
@@ -203,14 +207,14 @@ get_connection(Uri, Worker, State) ->
 					NHosts = dict:store(Uri, NewHost, State#state.hosts),
 					{ok, Host#host.connection, State#state{hosts=NHosts}};
 				false ->
-					stop_workers(Host#host.workers, State),
-					NHosts = dict:erase(Uri, State#state.hosts),
-					get_connection(Uri, Worker, State#state{hosts=NHosts})
+					State1 = stop_workers(Host#host.workers, ?COMMAND_RESTART, State),
+					NHosts = dict:erase(Uri, State1#state.hosts),
+					get_connection(Uri, Worker, State1#state{hosts=NHosts})
 			end
 	end.
 
 stop(Worker, State) ->
-	stop_worker_server(Worker, State),
+	stop_worker_server(Worker, ?COMMAND_TERMINATE, State),
 	case unregister_worker(Worker, State) of
 		not_found -> State;
 		{WorkerConfig, State1} -> 
@@ -224,15 +228,18 @@ stop(Worker, State) ->
 			end
 	end.
 
-stop_workers(List, State) ->
-	lists:foreach(fun(Worker) -> 
-			stop_worker_server(Worker, State) 
-		end, List).
+stop_workers([], _Command, State) -> State;
+stop_workers([Worker|T], Command, State) ->
+	State1 = stop_worker_server(Worker, Command, State),
+	stop_workers(T, Command, State1).
 
-stop_worker_server(Worker, State) -> 
+stop_worker_server(Worker, Command, State) -> 
 	case find_pid(Worker, State#state.pids) of
-		{ok, Pid} -> Pid ! {terminate};
-		false -> ok
+		{ok, Pid} -> 
+			Pid ! Command,
+			NPids = dict:erase(Pid, State#state.pids),
+			State#state{pids=NPids};
+		false -> State
 	end.
 
 find_pid(Worker, Dict) ->
@@ -241,7 +248,7 @@ find_pid(Worker, Dict) ->
 				true -> [Key|Acc];
 				false -> Acc
 			end
-		end,
+	end,
 	case dict:fold(SelFun, [], Dict) of
 		[] -> false;
 		[Pid|_] -> {ok, Pid}
