@@ -99,7 +99,7 @@ msg(Msg, State=#state{channel=Channel, handler=Handler, handler_state=HandlerSta
 		{send, Exchange, RoutingKey, Payload, Persistent, NewState} ->
 			case eb_api:send_message(Channel, Exchange, RoutingKey, Payload, Persistent) of
 				ok -> {ok, State#state{handler_state=NewState}};
-				{error, Reason} -> {error, Reason, NewState}
+				{error, Reason} -> {error, Reason, State#state{handler_state=NewState}}
 			end;
 		{ignore, NewState} -> {ok, State#state{handler_state=NewState}}
 	end.
