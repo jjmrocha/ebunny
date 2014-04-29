@@ -108,6 +108,8 @@ handle_cast({stop, Worker}, State) ->
 	{noreply, NewState}.
 
 %% handle_info
+handle_info({'DOWN', _MonitorRef, process, _Pid, killed}, State) -> {noreply, State};
+
 handle_info({'DOWN', _MonitorRef, process, Pid, Reason}, State=#state{pids=Pids}) ->
 	case dict:find(Pid, Pids) of
 		error -> {noreply, State};
