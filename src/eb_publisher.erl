@@ -49,6 +49,7 @@ init([Connection, #publisher_record{publisher_name=ServerName, handler=Handler, 
 	error_logger:info_msg("Publisher ~p [~p] Starting...\n", [ServerName, self()]),
 	case eb_api:open_channel(Connection) of
 		{ok, Channel} ->
+			error_logger:info_msg("~p: Channel for ~p: ~p\n", [?MODULE, ServerName, Channel]),
 			{ok, HandlerState} = Handler:init(Args),
 			erlang:register(ServerName, self()),
 			State = #state{publisher_name=ServerName, 

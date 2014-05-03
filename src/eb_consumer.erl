@@ -33,6 +33,7 @@ init(Connection, ConsumerConfig=#consumer_record{consumer_name=ServerName, handl
 	error_logger:info_msg("Consumer ~p [~p] Starting...\n", [ServerName, self()]),
 	case eb_api:open_channel(Connection) of
 		{ok, Channel} ->
+			error_logger:info_msg("~p: Channel for ~p: ~p\n", [?MODULE, ServerName, Channel]),
 			case eb_api:subscribe(Channel, ConsumerConfig#consumer_record.queue_name, self()) of
 				{ok, Ref} ->
 					State = #state{channel=Channel, subscription=Ref},

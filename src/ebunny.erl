@@ -195,6 +195,7 @@ get_connection(Uri, Worker, State) ->
 		error ->
 			case eb_api:connect(Uri) of
 				{ok, Con} ->
+					error_logger:info_msg("~p: Connection to ~s: ~p\n", [?MODULE, Uri, Con]),
 					Host = append_worker(Worker, #host{connection=Con}),
 					NHosts = dict:store(Uri, Host, State#state.hosts),
 					NPids = dict:store(Con, {?EBUNNY_CONNECTION_PID, Uri}, State#state.pids),
