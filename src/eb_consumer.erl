@@ -62,6 +62,7 @@ loop(ConsumerConfig=#consumer_record{handler=Handler}, State=#state{channel=Chan
 					eb_api:ack_message(Channel, MessageTag),
 					loop(ConsumerConfig, State, NewState);
 				{no_ack, NewState} -> 
+					eb_api:nack_message(Channel, MessageTag),
 					loop(ConsumerConfig, State, NewState)
 			end;
 		{other, Other} ->

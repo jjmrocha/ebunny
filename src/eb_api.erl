@@ -27,7 +27,7 @@
 -export([open_channel/1, close_channel/1]).
 -export([create_queue/1, create_queue/4, delete_queue/2]).
 -export([send_message/3, send_message/4, send_message/5]).
--export([get_message/2, get_message/3, ack_message/2]).
+-export([get_message/2, get_message/3, ack_message/2, nack_message/2]).
 -export([subscribe/3, listen/0, unsubscribe/2]).
 
 -spec connect() -> {ok, Connection :: pid()} | {error, Error :: term()}.
@@ -132,6 +132,10 @@ get_message(Channel, Queue) ->
 -spec ack_message(Channel :: pid(), MessageTag :: term()) -> ok.
 ack_message(Channel, MessageTag) ->
 	amqp_channel:cast(Channel, #'basic.ack'{delivery_tag = MessageTag}).
+
+-spec nack_message(Channel :: pid(), MessageTag :: term()) -> ok.
+nack_message(Channel, MessageTag) ->
+	amqp_channel:cast(Channel, #'basic.nack'{delivery_tag = MessageTag}).
 
 -spec subscribe(Channel :: pid(), Queue :: binary(), Pid :: pid()) -> 
 	{ok, Ref :: term()} | {error, Reason :: term()}.

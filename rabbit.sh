@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=3.3.3
+VERSION=3.6.5
 
 echo "Fetching rabbitmq"
 
