@@ -26,7 +26,9 @@
 	]},
 	{applications, [
 		kernel, 
-		stdlib
+		stdlib,
+		rabbit_common,
+		rabbit_client
 	]},
 	{mod, {ebunny_app, []}}
 ]}.
