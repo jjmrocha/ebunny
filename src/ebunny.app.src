@@ -28,7 +28,7 @@
 		kernel, 
 		stdlib,
 		rabbit_common,
-		rabbit_client
+		amqp_client
 	]},
 	{mod, {ebunny_app, []}}
 ]}.
